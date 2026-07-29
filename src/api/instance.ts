@@ -1,8 +1,7 @@
 import axios from 'axios'
 
 const instance = axios.create({
-  // baseURL: 'https://psi.example.kz/api',
-  baseURL: 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   withCredentials: false,
   headers: {},
 })

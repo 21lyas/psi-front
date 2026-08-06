@@ -5,6 +5,7 @@ import { fetchDivisions } from '../api/endpoints/divisions'
 import { fetchRoles } from '../api/endpoints/roles'
 import Header from '../components/Layout/Header'
 import type { Employee } from '../types/employee'
+import { employeeDisplayName, employeeInitials } from '../utils/employeeName'
 
 function StatCard({ icon: Icon, label, value, color, sub }: { icon: React.ElementType; label: string; value: number | string; color: string; sub?: string }) {
   return (
@@ -80,10 +81,10 @@ export default function DashboardPage() {
                 {[...employees].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 6).map(e => (
                   <div key={e.id} className="flex items-center gap-3 py-1">
                     <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary-500/20 to-purple-500/20 flex items-center justify-center text-primary-500 text-xs font-semibold flex-shrink-0">
-                      {e.first_name.charAt(0)}{e.last_name.charAt(0)}
+                      {employeeInitials(e)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-900 truncate">{e.first_name} {e.last_name}</p>
+                      <p className="text-xs font-medium text-gray-900 truncate">{employeeDisplayName(e)}</p>
                       <p className="text-xs text-gray-400 truncate">{e.role?.title}</p>
                     </div>
                     <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${e.is_active ? 'bg-emerald-500' : 'bg-gray-300'}`} />

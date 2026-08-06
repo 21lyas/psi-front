@@ -5,10 +5,10 @@ import type { LinkOption } from '../../components/ui/EntityLinkPicker'
 export const fetchAllEmployees = () => instance.get<Employee[]>('/employees').then(r => r.data)
 export const fetchEmployeeById = (id: number) => instance.get<Employee>(`/employees/${id}`).then(r => r.data)
 
-export const createEmployee = (data: Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'role'>) =>
+export const createEmployee = (data: Partial<Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'role' | 'systemRole'>>) =>
   instance.post<Employee>('/employees', data).then(r => r.data)
 
-export const updateEmployee = (id: number, data: Partial<Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'role'>>) =>
+export const updateEmployee = (id: number, data: Partial<Omit<Employee, 'id' | 'created_at' | 'updated_at' | 'role' | 'systemRole'>>) =>
   instance.patch<Employee>(`/employees/${id}`, data).then(r => r.data)
 
 export const deleteEmployee = (id: number) => instance.delete(`/employees/${id}`)

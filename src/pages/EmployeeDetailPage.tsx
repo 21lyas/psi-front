@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft, Pencil, Check, X, Wrench, Wallet, Mail, Phone, KeyRound, Calendar,
-  HardHat, ChevronLeft, ChevronRight, ExternalLink, Link2,
+  HardHat, ChevronLeft, ChevronRight, ExternalLink, Link2, ShieldCheck, Building2, DollarSign,
 } from 'lucide-react'
 import Header from '../components/Layout/Header'
 import EntityLinkPicker from '../components/ui/EntityLinkPicker'
@@ -11,12 +11,15 @@ import {
   fetchEmployeeById, updateEmployee, fetchServiceTitanDirectory, fetchGustoDirectory, fetchTechnicianDirectory,
 } from '../api/endpoints/employees'
 import { fetchRoles } from '../api/endpoints/roles'
+import { fetchSystemRoles } from '../api/endpoints/systemRoles'
 import { fetchEmployeeCalendar, type CalendarItem } from '../api/endpoints/workEntries'
+import { employeeDisplayName, employeeInitials } from '../utils/employeeName'
 
 type FormData = {
   first_name: string; last_name: string; role_id: number | null
   pay_level: number; hire_date: string; email: string; phone: string; login: string
   is_active: boolean; gusto_id: string | null; service_titan_id: string | null; tech_id: string | null
+  system_role_id: number | null
 }
 
 // ─── Job history helpers ───────────────────────────────────────────────────
@@ -77,6 +80,7 @@ export default function EmployeeDetailPage() {
     enabled: Number.isFinite(employeeId),
   })
   const { data: roles = [] } = useQuery({ queryKey: ['roles'], queryFn: () => fetchRoles() })
+  const { data: systemRoles = [] } = useQuery({ queryKey: ['system-roles'], queryFn: fetchSystemRoles })
 
   const { from, to } = monthRange(year, month)
   const { data: allJobs = [], isLoading: loadingJobs } = useQuery({
@@ -89,11 +93,14 @@ export default function EmployeeDetailPage() {
   const save = useMutation({
     mutationFn: (dto: FormData) => updateEmployee(employeeId, {
       ...dto,
+      first_name: dto.first_name || null,
+      last_name: dto.last_name || null,
       email: dto.email || null,
       phone: dto.phone || null,
       login: dto.login || null,
       hire_date: dto.hire_date || null,
       role_id: dto.role_id || null,
+      system_role_id: dto.system_role_id || null,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['employee', employeeId] })
@@ -105,12 +112,13 @@ export default function EmployeeDetailPage() {
   const startEdit = () => {
     if (!employee) return
     setForm({
-      first_name: employee.first_name, last_name: employee.last_name,
+      first_name: employee.first_name ?? '', last_name: employee.last_name ?? '',
       role_id: employee.role_id, pay_level: employee.pay_level,
       hire_date: employee.hire_date ?? '', email: employee.email ?? '',
       phone: employee.phone ?? '', login: employee.login ?? '',
       is_active: employee.is_active,
       gusto_id: employee.gusto_id, service_titan_id: employee.service_titan_id, tech_id: employee.tech_id,
+      system_role_id: employee.system_role_id,
     })
     setLinkLabels({ st: null, gusto: null, tech: null })
     if (employee.service_titan_id) {
@@ -172,7 +180,7 @@ export default function EmployeeDetailPage() {
 
   return (
     <>
-      <Header title="Employee Profile" subtitle={`${employee.first_name} ${employee.last_name}`} />
+      <Header title="Employee Profile" subtitle={employeeDisplayName(employee)} />
       <div className="p-6 max-w-6xl space-y-5">
         <button
           onClick={() => navigate('/employees')}
@@ -187,7 +195,7 @@ export default function EmployeeDetailPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4 min-w-0">
               <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary-500/20 to-purple-500/20 flex items-center justify-center text-primary-500 text-lg font-semibold flex-shrink-0">
-                {employee.first_name.charAt(0)}{employee.last_name.charAt(0)}
+                {employeeInitials(employee)}
               </div>
               {isEditing && form ? (
                 <div className="grid grid-cols-2 gap-2">
@@ -197,7 +205,7 @@ export default function EmployeeDetailPage() {
               ) : (
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-gray-900 text-lg font-semibold truncate">{employee.first_name} {employee.last_name}</h2>
+                    <h2 className={`text-lg font-semibold truncate ${employee.first_name || employee.last_name ? 'text-gray-900' : 'text-gray-400 italic'}`}>{employeeDisplayName(employee)}</h2>
                     {employee.service_titan_id && <Wrench size={13} className="text-blue-400 flex-shrink-0" />}
                     {employee.gusto_id && <Wallet size={13} className="text-emerald-500 flex-shrink-0" />}
                     {employee.tech_id && <HardHat size={13} className="text-amber-500 flex-shrink-0" />}
@@ -212,7 +220,7 @@ export default function EmployeeDetailPage() {
             <div className="flex gap-2 flex-shrink-0">
               {isEditing ? (
                 <>
-                  <button onClick={() => form && save.mutate(form)} disabled={save.isPending || !form?.first_name || !form?.last_name}
+                  <button onClick={() => form && save.mutate(form)} disabled={save.isPending}
                     className="p-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors disabled:opacity-50">
                     <Check size={16} />
                   </button>
@@ -298,6 +306,15 @@ export default function EmployeeDetailPage() {
                 <label className="block text-xs font-medium text-gray-700 mb-1.5">Login</label>
                 <input className="input-field" value={form.login} onChange={e => set('login', e.target.value)} />
               </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">System role</label>
+                <select className="input-field" value={form.system_role_id ?? 0} onChange={e => set('system_role_id', +e.target.value || null)}>
+                  <option value={0}>None</option>
+                  {systemRoles.map(r => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              </div>
               <label className="flex items-center gap-2 cursor-pointer mt-6">
                 <input type="checkbox" checked={form.is_active} onChange={e => set('is_active', e.target.checked)} className="rounded border-gray-300 text-primary-500 focus:ring-primary-500" />
                 <span className="text-sm text-gray-700">Active employee</span>
@@ -317,9 +334,34 @@ export default function EmployeeDetailPage() {
                 <p className="text-gray-400 text-xs flex items-center gap-1"><KeyRound size={11} /> Login</p>
                 <p className="text-gray-900">{employee.login || '—'}</p>
               </div>
+              <div>
+                <p className="text-gray-400 text-xs flex items-center gap-1"><ShieldCheck size={11} /> System role</p>
+                <p className="text-gray-900">{employee.systemRole?.name || '—'}</p>
+              </div>
             </div>
           )}
         </div>
+
+        {(employee.department || employee.hourly_rate || employee.gusto_name || employee.label) && (
+          <div className="card p-5 space-y-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Technician roster data</p>
+            <p className="text-xs text-gray-400 -mt-3">Mirrored from the ServiceTitan technician roster (psi.st_employees) — read-only here.</p>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-400 text-xs flex items-center gap-1"><Building2 size={11} /> Department</p>
+                <p className="text-gray-900">{employee.department || '—'}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs flex items-center gap-1"><DollarSign size={11} /> Hourly rate</p>
+                <p className="text-gray-900">{employee.hourly_rate ? `$${Number(employee.hourly_rate).toFixed(2)}/h` : '—'}</p>
+              </div>
+              <div className="col-span-2">
+                <p className="text-gray-400 text-xs">Gusto name / label</p>
+                <p className="text-gray-900">{employee.gusto_name || employee.label || '—'}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="card p-5 space-y-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">External systems</p>

@@ -5,6 +5,7 @@ import Header from '../components/Layout/Header'
 import { fetchAllEmployees } from '../api/endpoints/employees'
 import { fetchRole } from '../api/endpoints/roles'
 import type { Employee } from '../types/employee'
+import { employeeDisplayName, employeeInitials } from '../utils/employeeName'
 import type { Role } from '../types/role'
 import type { RoleBonusConfig } from '../types/roleBonusConfig'
 
@@ -303,7 +304,7 @@ export default function SalariesPage() {
     if (!search.trim()) return employees
     const q = search.toLowerCase()
     return employees.filter(e =>
-      `${e.first_name} ${e.last_name}`.toLowerCase().includes(q) ||
+      employeeDisplayName(e).toLowerCase().includes(q) ||
       e.role?.title?.toLowerCase().includes(q) ||
       e.role?.division?.name?.toLowerCase().includes(q)
     )
@@ -357,7 +358,7 @@ export default function SalariesPage() {
                   >
                     <div className="min-w-0 flex-1">
                       <p className={`text-sm font-medium truncate ${active ? 'text-primary-700' : 'text-gray-900'}`}>
-                        {emp.first_name} {emp.last_name}
+                        {employeeDisplayName(emp)}
                       </p>
                       <p className="text-xs text-gray-400 truncate mt-0.5">{emp.role?.division?.name} · {emp.role?.title}</p>
                       <span className={`mt-1.5 inline-block text-xs px-1.5 py-0.5 rounded font-medium ${PAY_TYPE_COLORS[emp.role?.pay_type ?? ''] ?? 'bg-gray-100 text-gray-500'}`}>
@@ -392,11 +393,11 @@ export default function SalariesPage() {
                 <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/60">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/20 to-purple-500/20 flex items-center justify-center text-primary-600 text-base font-bold flex-shrink-0">
-                      {selectedEmp.first_name[0]}{selectedEmp.last_name[0]}
+                      {employeeInitials(selectedEmp)}
                     </div>
                     <div>
                       <h3 className="text-base font-semibold text-gray-900">
-                        {selectedEmp.first_name} {selectedEmp.last_name}
+                        {employeeDisplayName(selectedEmp)}
                       </h3>
                       <p className="text-sm text-gray-500">{role.division?.name} · {role.title}</p>
                       <div className="flex items-center gap-2 mt-1.5 flex-wrap">

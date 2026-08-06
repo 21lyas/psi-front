@@ -1,8 +1,9 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   Users, LayoutDashboard, DollarSign, BarChart2,
-  Building2, Briefcase, Percent, ChevronRight, FileText, Wrench, ClipboardCheck, HardHat,
+  Building2, Briefcase, Percent, ChevronRight, FileText, Wrench, ClipboardCheck, HardHat, LogOut,
 } from 'lucide-react'
+import { useAuth } from '../../context/AuthContext'
 
 const sections = [
   {
@@ -39,6 +40,17 @@ const sections = [
 ]
 
 export default function Sidebar() {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const name = user ? [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.login : ''
+  const initial = name ? name.charAt(0).toUpperCase() : '?'
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <aside className="fixed left-0 top-0 h-screen w-60 flex flex-col" style={{ backgroundColor: '#0f1623' }}>
       <div className="flex items-center gap-3 px-5 py-5 border-b border-white/5">
@@ -78,14 +90,21 @@ export default function Sidebar() {
       </nav>
 
       <div className="px-3 py-4 border-t border-white/5">
-        <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/5 cursor-pointer transition-all">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold">
-            A
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/5 transition-all group">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+            {initial}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-xs font-medium truncate">Admin</p>
-            <p className="text-gray-500 text-xs truncate">admin@psi.kz</p>
+            <p className="text-white text-xs font-medium truncate">{name}</p>
+            <p className="text-gray-500 text-xs truncate">{user?.systemRole?.name ?? user?.login}</p>
           </div>
+          <button
+            onClick={handleLogout}
+            title="Sign out"
+            className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0"
+          >
+            <LogOut size={14} />
+          </button>
         </div>
       </div>
     </aside>

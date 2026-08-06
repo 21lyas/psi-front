@@ -12,6 +12,7 @@ import {
 } from '../api/endpoints/employees'
 import { fetchRoles } from '../api/endpoints/roles'
 import type { Employee } from '../types/employee'
+import { employeeDisplayName, employeeInitials, employeeHasName } from '../utils/employeeName'
 
 const PAGE_SIZE = 15
 
@@ -65,8 +66,10 @@ export default function EmployeesPage() {
     if (!search.trim()) return employees
     const q = search.toLowerCase()
     return employees.filter(e =>
-      `${e.first_name} ${e.last_name}`.toLowerCase().includes(q) ||
+      employeeDisplayName(e).toLowerCase().includes(q) ||
       e.email?.toLowerCase().includes(q) ||
+      e.department?.toLowerCase().includes(q) ||
+      e.tech_id?.includes(q) ||
       e.role?.title?.toLowerCase().includes(q) ||
       e.role?.division?.name?.toLowerCase().includes(q),
     )
@@ -80,7 +83,7 @@ export default function EmployeesPage() {
 
   const save = useMutation({
     mutationFn: () => {
-      const payload = { ...form, email: form.email || null, phone: form.phone || null, login: modal.item?.login ?? null, tech_id: modal.item?.tech_id ?? null }
+      const payload = { ...form, role_id: form.role_id || null, email: form.email || null, phone: form.phone || null, login: modal.item?.login ?? null, tech_id: modal.item?.tech_id ?? null }
       return modal.item ? updateEmployee(modal.item.id, payload) : createEmployee(payload)
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['employees'] }); closeModal() },
@@ -94,7 +97,7 @@ export default function EmployeesPage() {
   const openCreate = () => { setForm(emptyForm()); setLinkLabels({ st: null, gusto: null }); setModal({ open: true }) }
   const openEdit = (e: Employee) => {
     setForm({
-      first_name: e.first_name, last_name: e.last_name, role_id: e.role_id ?? 0, pay_level: e.pay_level,
+      first_name: e.first_name ?? '', last_name: e.last_name ?? '', role_id: e.role_id ?? 0, pay_level: e.pay_level,
       hire_date: e.hire_date ?? '', email: e.email ?? '', phone: e.phone ?? '', is_active: e.is_active,
       gusto_id: e.gusto_id, service_titan_id: e.service_titan_id,
     })
@@ -173,17 +176,18 @@ export default function EmployeesPage() {
                 )}
                 {!isLoading && pageData.map(emp => {
                   const rate = emp.role?.payRateLevels?.find(l => l.level === emp.pay_level)
+                  const hasName = employeeHasName(emp)
                   return (
                     <tr key={emp.id} onClick={() => navigate(`/employees/${emp.id}`)} className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors group cursor-pointer">
                       <td className="px-4 py-3 text-xs font-mono text-gray-400">#{emp.id}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500/20 to-purple-500/20 flex items-center justify-center text-primary-500 text-xs font-semibold flex-shrink-0">
-                            {emp.first_name.charAt(0)}{emp.last_name.charAt(0)}
+                            {employeeInitials(emp)}
                           </div>
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <p className="text-sm font-medium text-gray-900">{emp.first_name} {emp.last_name}</p>
+                              <p className={`text-sm font-medium ${hasName ? 'text-gray-900' : 'text-gray-400 italic'}`}>{employeeDisplayName(emp)}</p>
                               {emp.service_titan_id && <Wrench size={11} className="text-blue-400" />}
                               {emp.gusto_id && <Wallet size={11} className="text-emerald-500" />}
                               {emp.tech_id && <HardHat size={11} className="text-amber-500" />}
@@ -194,13 +198,17 @@ export default function EmployeesPage() {
                       </td>
                       <td className="px-4 py-3">
                         <p className="text-sm text-gray-900">{emp.role?.title || '—'}</p>
-                        <p className="text-xs text-gray-400">{emp.role?.division?.name || '—'}</p>
+                        <p className="text-xs text-gray-400">{emp.role?.division?.name || emp.department || '—'}</p>
                       </td>
                       <td className="px-4 py-3">
                         <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md text-xs font-medium">Lv{emp.pay_level}</span>
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                        {rate ? `$${Number(rate.hourly_rate).toFixed(2)}/h` : '—'}
+                        {rate
+                          ? `$${Number(rate.hourly_rate).toFixed(2)}/h`
+                          : emp.hourly_rate
+                            ? <span className="text-gray-400 font-normal">${Number(emp.hourly_rate).toFixed(2)}/h <span className="text-[10px]">(ST)</span></span>
+                            : '—'}
                       </td>
                       <td className="px-4 py-3 text-xs text-gray-500">
                         {emp.phone || emp.email
@@ -258,9 +266,9 @@ export default function EmployeesPage() {
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">Role <span className="text-red-500">*</span></label>
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">Role</label>
             <select className="input-field" value={form.role_id} onChange={e => set('role_id', +e.target.value)}>
-              <option value={0} disabled>Select role</option>
+              <option value={0}>Not assigned</option>
               {roles.map(r => (
                 <option key={r.id} value={r.id}>{r.division?.name} — {r.title}</option>
               ))}
@@ -335,7 +343,7 @@ export default function EmployeesPage() {
           )}
           <div className="flex gap-2 pt-1">
             <button onClick={closeModal} className="btn-secondary flex-1">Cancel</button>
-            <button onClick={() => save.mutate()} disabled={!form.first_name || !form.last_name || !form.role_id || save.isPending} className="btn-primary flex-1 disabled:opacity-50">
+            <button onClick={() => save.mutate()} disabled={!form.first_name || !form.last_name || save.isPending} className="btn-primary flex-1 disabled:opacity-50">
               {save.isPending ? 'Saving...' : modal.item ? 'Save' : 'Create'}
             </button>
           </div>

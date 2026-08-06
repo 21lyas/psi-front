@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import MainLayout from './components/Layout/MainLayout'
 import EmployeeLayout from './components/Layout/EmployeeLayout'
+import ProtectedRoute from './components/ProtectedRoute'
+import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import EmployeesPage from './pages/EmployeesPage'
 import EmployeeDetailPage from './pages/EmployeeDetailPage'
@@ -19,22 +21,26 @@ import EmployeePortalPage from './pages/EmployeePortalPage'
 export default function App() {
   return (
     <Routes>
-      {/* Admin / main interface */}
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={<DashboardPage />} />
-        <Route path="employees" element={<EmployeesPage />} />
-        <Route path="employees/:id" element={<EmployeeDetailPage />} />
-        <Route path="divisions" element={<DivisionsPage />} />
-        <Route path="roles" element={<RolesPage />} />
-        <Route path="bonus-types" element={<BonusTypesPage />} />
-        <Route path="role-bonus-configs" element={<RoleBonusConfigsPage />} />
-        <Route path="salaries" element={<SalariesPage />} />
-        <Route path="payroll" element={<PayrollPage />} />
-        <Route path="st-payroll" element={<StPayrollPage />} />
-        <Route path="work-entries" element={<AdminWorkEntriesPage />} />
-        <Route path="technicians" element={<StTechniciansPage />} />
-        <Route path="technicians/:techId" element={<TechnicianDetailPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Admin / main interface — requires a logged-in session */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="employees" element={<EmployeesPage />} />
+          <Route path="employees/:id" element={<EmployeeDetailPage />} />
+          <Route path="divisions" element={<DivisionsPage />} />
+          <Route path="roles" element={<RolesPage />} />
+          <Route path="bonus-types" element={<BonusTypesPage />} />
+          <Route path="role-bonus-configs" element={<RoleBonusConfigsPage />} />
+          <Route path="salaries" element={<SalariesPage />} />
+          <Route path="payroll" element={<PayrollPage />} />
+          <Route path="st-payroll" element={<StPayrollPage />} />
+          <Route path="work-entries" element={<AdminWorkEntriesPage />} />
+          <Route path="technicians" element={<StTechniciansPage />} />
+          <Route path="technicians/:techId" element={<TechnicianDetailPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
       </Route>
 
       {/* Employee portal — separate mobile-first layout, no sidebar */}

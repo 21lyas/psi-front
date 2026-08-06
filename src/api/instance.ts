@@ -2,8 +2,8 @@ import axios from 'axios'
 import { getToken, setToken, clearToken, UNAUTHORIZED_EVENT } from './tokenStore'
 
 const instance = axios.create({
-  // baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-  baseURL: 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  // baseURL: 'http://localhost:3000/api',
   withCredentials: false,
   headers: {},
 })
